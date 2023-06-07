@@ -1,5 +1,5 @@
 /*
- * (C) 2016-2020 see Authors.txt
+ * (C) 2016-2023 see Authors.txt
  *
  * This file is part of MPC-BE.
  *
@@ -60,7 +60,8 @@ bool IsFontInstalled(LPCWSTR lpszFont);
 
 class CMPCGradient
 {
-	std::vector<NoInitByte> m_data;
+	std::unique_ptr<BYTE[]> m_pData;
+	UINT m_size = 0;
 	UINT m_width = 0;
 	UINT m_height = 0;
 

@@ -41,6 +41,12 @@
 #define ID_PLSMENU_RENAME_PLAYLIST 2003
 #define ID_PLSMENU_DELETE_PLAYLIST 2004
 
+#define ID_PLSMENU_POSITION_LEFT   2005
+#define ID_PLSMENU_POSITION_TOP    2006
+#define ID_PLSMENU_POSITION_RIGHT  2007
+#define ID_PLSMENU_POSITION_BOTTOM 2008
+#define ID_PLSMENU_POSITION_FLOAT  2009
+
 WCHAR LastChar(const CStringW& str)
 {
 	int len = str.GetLength();
@@ -257,7 +263,7 @@ CString CPlaylistItem::GetLabel(int i)
 						str = str.Right(str.GetLength() - pos - 1);
 					}
 				}
-				m_label = str.TrimRight(L'/');
+				//m_label = str.TrimRight(L'/');
 			}
 			else {
 				str = GetFileOnly(fn);
@@ -1121,6 +1127,12 @@ BOOL CPlayerPlaylistBar::PreTranslateMessage(MSG* pMsg)
 					}
 				case VK_DELETE:
 				case VK_APPS: // "Menu key"
+					break;
+				case VK_F2:
+					if (m_list.GetSelectedCount() == 1) {
+						const auto nItem = m_list.GetNextItem(-1, LVNI_SELECTED);
+						m_list.EditLabel(nItem);
+					}
 					break;
 				default:
 					m_pMainFrame->PostMessageW(pMsg->message, pMsg->wParam, pMsg->lParam);
@@ -3379,70 +3391,70 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 
 	CAppSettings& s = AfxGetAppSettings();
 
-	m.AppendMenu(MF_STRING | (bOnItem ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_OPEN, ResStr(IDS_PLAYLIST_OPEN) + L"\tEnter");
+	m.AppendMenuW(MF_STRING | (bOnItem ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_OPEN, ResStr(IDS_PLAYLIST_OPEN) + L"\tEnter");
 	if (curTab.type == PL_BASIC) {
-		m.AppendMenu(MF_STRING | MF_ENABLED, M_ADD, ResStr(IDS_PLAYLIST_ADD));
-		m.AppendMenu(MF_STRING | (bOnItem ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_REMOVE, ResStr(IDS_PLAYLIST_REMOVE) + L"\tDelete");
-		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING | (bOnItem ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_DELETE, ResStr(IDS_PLAYLIST_DELETE) + L"\tShift+Delete");
-		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_CLEAR, ResStr(IDS_PLAYLIST_CLEAR));
-		m.AppendMenu(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_REMOVEMISSINGFILES, ResStr(IDS_PLAYLIST_REMOVEMISSINGFILES));
-		m.AppendMenu(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | MF_ENABLED, M_ADD, ResStr(IDS_PLAYLIST_ADD));
+		m.AppendMenuW(MF_STRING | (bOnItem ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_REMOVE, ResStr(IDS_PLAYLIST_REMOVE) + L"\tDelete");
+		m.AppendMenuW(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | (bOnItem ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_DELETE, ResStr(IDS_PLAYLIST_DELETE) + L"\tShift+Delete");
+		m.AppendMenuW(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_CLEAR, ResStr(IDS_PLAYLIST_CLEAR));
+		m.AppendMenuW(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_REMOVEMISSINGFILES, ResStr(IDS_PLAYLIST_REMOVEMISSINGFILES));
+		m.AppendMenuW(MF_SEPARATOR);
 	}
-	m.AppendMenu(MF_STRING | (m_list.GetSelectedCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_TOCLIPBOARD, ResStr(IDS_PLAYLIST_COPYTOCLIPBOARD) + L"\tCtrl+C");
+	m.AppendMenuW(MF_STRING | (m_list.GetSelectedCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_TOCLIPBOARD, ResStr(IDS_PLAYLIST_COPYTOCLIPBOARD) + L"\tCtrl+C");
 	if (curTab.type == PL_EXPLORER) {
 		const bool bReverse = !!(curTab.sort >> 8);
 		const auto sort = (SORT)(curTab.sort & 0xF);
 
-		m.AppendMenu(MF_SEPARATOR);
+		m.AppendMenuW(MF_SEPARATOR);
 		CMenu submenu2;
 		submenu2.CreatePopupMenu();
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED | (sort == SORT::NAME ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYNAME));
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED | (sort == SORT::DATE ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYDATE, ResStr(IDS_PLAYLIST_SORTBYDATE));
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED | (sort == SORT::DATE_CREATED ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYDATECREATED, ResStr(IDS_PLAYLIST_SORTBYDATECREATED));
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED | (sort == SORT::SIZE ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYSIZE, ResStr(IDS_PLAYLIST_SORTBYSIZE));
-		submenu2.AppendMenu(MF_SEPARATOR);
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED | (bReverse ? MF_CHECKED : MF_UNCHECKED), M_SORTREVERSE, ResStr(IDS_PLAYLIST_SORTREVERSE));
-		m.AppendMenu(MF_STRING | MF_POPUP | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT_PTR)submenu2.Detach(), ResStr(IDS_PLAYLIST_SORT));
-		m.AppendMenu(MF_SEPARATOR);
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED | (sort == SORT::NAME ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYNAME));
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED | (sort == SORT::DATE ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYDATE, ResStr(IDS_PLAYLIST_SORTBYDATE));
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED | (sort == SORT::DATE_CREATED ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYDATECREATED, ResStr(IDS_PLAYLIST_SORTBYDATECREATED));
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED | (sort == SORT::SIZE ? (MFT_RADIOCHECK | MFS_CHECKED) : 0), M_SORTBYSIZE, ResStr(IDS_PLAYLIST_SORTBYSIZE));
+		submenu2.AppendMenuW(MF_SEPARATOR);
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED | (bReverse ? MF_CHECKED : MF_UNCHECKED), M_SORTREVERSE, ResStr(IDS_PLAYLIST_SORTREVERSE));
+		m.AppendMenuW(MF_STRING | MF_POPUP | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT_PTR)submenu2.Detach(), ResStr(IDS_PLAYLIST_SORT));
+		m.AppendMenuW(MF_SEPARATOR);
 
-		m.AppendMenu(MF_STRING | MF_ENABLED, M_REFRESH, ResStr(IDS_PLAYLIST_EXPLORER_REFRESH));
-		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING | MF_ENABLED | (s.bShufflePlaylistItems ? MF_CHECKED : MF_UNCHECKED), M_SHUFFLE, ResStr(IDS_PLAYLIST_SHUFFLE));
-		m.AppendMenu(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | MF_ENABLED, M_REFRESH, ResStr(IDS_PLAYLIST_EXPLORER_REFRESH));
+		m.AppendMenuW(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bShufflePlaylistItems ? MF_CHECKED : MF_UNCHECKED), M_SHUFFLE, ResStr(IDS_PLAYLIST_SHUFFLE));
+		m.AppendMenuW(MF_SEPARATOR);
 	}
 	else { // (curTab.type == PL_BASIC)
-		m.AppendMenu(MF_STRING | ((::IsClipboardFormatAvailable(CF_UNICODETEXT) || ::IsClipboardFormatAvailable(CF_HDROP)) ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_FROMCLIPBOARD, ResStr(IDS_PLAYLIST_PASTEFROMCLIPBOARD) + L"\tCtrl+V");
-		m.AppendMenu(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_SAVEAS, ResStr(IDS_PLAYLIST_SAVEAS));
-		m.AppendMenu(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | ((::IsClipboardFormatAvailable(CF_UNICODETEXT) || ::IsClipboardFormatAvailable(CF_HDROP)) ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_FROMCLIPBOARD, ResStr(IDS_PLAYLIST_PASTEFROMCLIPBOARD) + L"\tCtrl+V");
+		m.AppendMenuW(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_SAVEAS, ResStr(IDS_PLAYLIST_SAVEAS));
+		m.AppendMenuW(MF_SEPARATOR);
 		CMenu submenu2;
 		submenu2.CreatePopupMenu();
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED, M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYLABEL));
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED, M_SORTBYPATH, ResStr(IDS_PLAYLIST_SORTBYPATH));
-		submenu2.AppendMenu(MF_STRING | MF_ENABLED, M_SORTREVERSE, ResStr(IDS_PLAYLIST_SORTREVERSE));
-		m.AppendMenu(MF_STRING | MF_POPUP | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT_PTR)submenu2.Detach(), ResStr(IDS_PLAYLIST_SORT));
-		m.AppendMenu(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
-		m.AppendMenu(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
-		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING | MF_ENABLED | (s.bShufflePlaylistItems ? MF_CHECKED : MF_UNCHECKED), M_SHUFFLE, ResStr(IDS_PLAYLIST_SHUFFLE));
-		m.AppendMenu(MF_SEPARATOR);
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED, M_SORTBYNAME, ResStr(IDS_PLAYLIST_SORTBYLABEL));
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED, M_SORTBYPATH, ResStr(IDS_PLAYLIST_SORTBYPATH));
+		submenu2.AppendMenuW(MF_STRING | MF_ENABLED, M_SORTREVERSE, ResStr(IDS_PLAYLIST_SORTREVERSE));
+		m.AppendMenuW(MF_STRING | MF_POPUP | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT_PTR)submenu2.Detach(), ResStr(IDS_PLAYLIST_SORT));
+		m.AppendMenuW(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
+		m.AppendMenuW(MF_STRING | (curPlayList.GetCount() ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
+		m.AppendMenuW(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bShufflePlaylistItems ? MF_CHECKED : MF_UNCHECKED), M_SHUFFLE, ResStr(IDS_PLAYLIST_SHUFFLE));
+		m.AppendMenuW(MF_SEPARATOR);
 	}
-	m.AppendMenu(MF_STRING | (bOnItem && item_type == IT_FILE ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_MEDIAINFO, L"MediaInfo");
+	m.AppendMenuW(MF_STRING | (bOnItem && item_type == IT_FILE ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), M_MEDIAINFO, L"MediaInfo");
 	if (item_type == IT_FILE) {
-		m.AppendMenu(MF_STRING | MF_ENABLED, M_OPENFOLDER, ResStr(IDS_PLAYLIST_OPENFOLDER));
+		m.AppendMenuW(MF_STRING | MF_ENABLED, M_OPENFOLDER, ResStr(IDS_PLAYLIST_OPENFOLDER));
 	}
-	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING | MF_ENABLED | (s.bShowPlaylistTooltip ? MF_CHECKED : MF_UNCHECKED), M_SHOWTOOLTIP, ResStr(IDS_PLAYLIST_SHOWTOOLTIP));
-	m.AppendMenu(MF_STRING | MF_ENABLED | (s.bShowPlaylistSearchBar ? MF_CHECKED : MF_UNCHECKED), M_SHOWSEARCHBAR, ResStr(IDS_PLAYLIST_SHOWSEARCHBAR));
-	m.AppendMenu(MF_STRING | MF_ENABLED | (s.bHidePlaylistFullScreen ? MF_CHECKED : MF_UNCHECKED), M_HIDEFULLSCREEN, ResStr(IDS_PLAYLIST_HIDEFS));
-	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING | MF_ENABLED | (s.bPlaylistNextOnError ? MF_CHECKED : MF_UNCHECKED), M_NEXTONERROR, ResStr(IDS_PLAYLIST_NEXTONERROR));
-	m.AppendMenu(MF_STRING | MF_ENABLED | (s.bPlaylistSkipInvalid ? MF_CHECKED : MF_UNCHECKED), M_SKIPINVALID, ResStr(IDS_PLAYLIST_SKIPINVALID));
+	m.AppendMenuW(MF_SEPARATOR);
+	m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bShowPlaylistTooltip ? MF_CHECKED : MF_UNCHECKED), M_SHOWTOOLTIP, ResStr(IDS_PLAYLIST_SHOWTOOLTIP));
+	m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bShowPlaylistSearchBar ? MF_CHECKED : MF_UNCHECKED), M_SHOWSEARCHBAR, ResStr(IDS_PLAYLIST_SHOWSEARCHBAR));
+	m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bHidePlaylistFullScreen ? MF_CHECKED : MF_UNCHECKED), M_HIDEFULLSCREEN, ResStr(IDS_PLAYLIST_HIDEFS));
+	m.AppendMenuW(MF_SEPARATOR);
+	m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bPlaylistNextOnError ? MF_CHECKED : MF_UNCHECKED), M_NEXTONERROR, ResStr(IDS_PLAYLIST_NEXTONERROR));
+	m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bPlaylistSkipInvalid ? MF_CHECKED : MF_UNCHECKED), M_SKIPINVALID, ResStr(IDS_PLAYLIST_SKIPINVALID));
 
 	if (curTab.type == PL_BASIC) {
-		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING | MF_ENABLED | (s.bPlaylistDetermineDuration ? MF_CHECKED : MF_UNCHECKED), M_DURATION, ResStr(IDS_PLAYLIST_DETERMINEDURATION));
+		m.AppendMenuW(MF_SEPARATOR);
+		m.AppendMenuW(MF_STRING | MF_ENABLED | (s.bPlaylistDetermineDuration ? MF_CHECKED : MF_UNCHECKED), M_DURATION, ResStr(IDS_PLAYLIST_DETERMINEDURATION));
 	}
 
 	m_pMainFrame->SetColorMenu(m);
@@ -4108,7 +4120,6 @@ void CPlayerPlaylistBar::TOnMenu(bool bUnderCursor)
 
 	CAppSettings& s = AfxGetAppSettings();
 
-	CMenu submenu;
 	for (size_t i = 0; i < m_tabs.size(); i++) {
 		UINT flags = MF_BYPOSITION | MF_STRING | MF_ENABLED;
 		if (i == m_nCurPlayListIndex) {
@@ -4118,19 +4129,55 @@ void CPlayerPlaylistBar::TOnMenu(bool bUnderCursor)
 	}
 	menu.AppendMenuW(MF_SEPARATOR);
 
-	submenu.CreatePopupMenu();
-	submenu.AppendMenuW(MF_BYPOSITION | MF_STRING | MF_ENABLED, ID_PLSMENU_ADD_PLAYLIST, ResStr(IDS_PLAYLIST_ADD_PLAYLIST));
-	submenu.AppendMenuW(MF_BYPOSITION | MF_STRING | MF_ENABLED, ID_PLSMENU_ADD_EXPLORER, ResStr(IDS_PLAYLIST_ADD_EXPLORER));
-	menu.AppendMenuW(MF_BYPOSITION | MF_STRING | MF_POPUP | MF_ENABLED, (UINT_PTR)submenu.Detach(), ResStr(IDS_PLAYLIST_ADD_NEW));
+	CMenu addPlaylistSubMenu;
+	addPlaylistSubMenu.CreatePopupMenu();
+	addPlaylistSubMenu.AppendMenuW(MF_BYPOSITION | MF_STRING | MF_ENABLED, ID_PLSMENU_ADD_PLAYLIST, ResStr(IDS_PLAYLIST_ADD_PLAYLIST));
+	addPlaylistSubMenu.AppendMenuW(MF_BYPOSITION | MF_STRING | MF_ENABLED, ID_PLSMENU_ADD_EXPLORER, ResStr(IDS_PLAYLIST_ADD_EXPLORER));
+	menu.AppendMenuW(MF_BYPOSITION | MF_STRING | MF_POPUP | MF_ENABLED, (UINT_PTR)addPlaylistSubMenu.Detach(), ResStr(IDS_PLAYLIST_ADD_NEW));
 	menu.AppendMenuW(MF_BYPOSITION | MF_STRING | ((m_nCurPlayListIndex > 0) ? MF_ENABLED : (MF_DISABLED | MF_GRAYED))
 		, ID_PLSMENU_RENAME_PLAYLIST, ResStr(IDS_PLAYLIST_RENAME_CURRENT));
 	menu.AppendMenuW(MF_BYPOSITION | MF_STRING | ((m_nCurPlayListIndex > 0) ? MF_ENABLED : (MF_DISABLED | MF_GRAYED))
 		, ID_PLSMENU_DELETE_PLAYLIST, ResStr(IDS_PLAYLIST_DELETE_CURRENT));
 
-	m_pMainFrame->SetColorMenu(menu);
+	auto dockBarID = GetParent()->GetDlgCtrlID();
 
-	CString strDefName;
-	CString strGetName;
+	menu.AppendMenuW(MF_SEPARATOR);
+	CMenu positionPlaylistSubMenu;
+	positionPlaylistSubMenu.CreatePopupMenu();
+
+	UINT flags = MF_BYPOSITION | MF_STRING | MF_ENABLED;
+	if (dockBarID == AFX_IDW_DOCKBAR_LEFT) {
+		flags |= MF_CHECKED | MFT_RADIOCHECK;
+	}
+	positionPlaylistSubMenu.AppendMenuW(flags, ID_PLSMENU_POSITION_LEFT, ResStr(IDS_PLAYLIST_POSITION_LEFT));
+
+	flags = MF_BYPOSITION | MF_STRING | MF_ENABLED;
+	if (dockBarID == AFX_IDW_DOCKBAR_TOP) {
+		flags |= MF_CHECKED | MFT_RADIOCHECK;
+	}
+	positionPlaylistSubMenu.AppendMenuW(flags, ID_PLSMENU_POSITION_TOP, ResStr(IDS_PLAYLIST_POSITION_TOP));
+
+	flags = MF_BYPOSITION | MF_STRING | MF_ENABLED;
+	if (dockBarID == AFX_IDW_DOCKBAR_RIGHT) {
+		flags |= MF_CHECKED | MFT_RADIOCHECK;
+	}
+	positionPlaylistSubMenu.AppendMenuW(flags, ID_PLSMENU_POSITION_RIGHT, ResStr(IDS_PLAYLIST_POSITION_RIGHT));
+
+	flags = MF_BYPOSITION | MF_STRING | MF_ENABLED;
+	if (dockBarID == AFX_IDW_DOCKBAR_BOTTOM) {
+		flags |= MF_CHECKED | MFT_RADIOCHECK;
+	}
+	positionPlaylistSubMenu.AppendMenuW(flags, ID_PLSMENU_POSITION_BOTTOM, ResStr(IDS_PLAYLIST_POSITION_BOTTOM));
+
+	flags = MF_BYPOSITION | MF_STRING | MF_ENABLED;
+	if (dockBarID == AFX_IDW_DOCKBAR_FLOAT) {
+		flags |= MF_CHECKED | MFT_RADIOCHECK;
+	}
+	positionPlaylistSubMenu.AppendMenuW(flags, ID_PLSMENU_POSITION_FLOAT, ResStr(IDS_PLAYLIST_POSITION_FLOAT));
+
+	menu.AppendMenuW(MF_BYPOSITION | MF_STRING | MF_POPUP | MF_ENABLED, (UINT_PTR)positionPlaylistSubMenu.Detach(), ResStr(IDS_PLAYLIST_POSITION));
+
+	m_pMainFrame->SetColorMenu(menu);
 
 	int nID = (int)menu.TrackPopupMenu(TPM_LEFTBUTTON | TPM_RETURNCMD, p.x, p.y, this);
 	int size = m_tabs.size();
@@ -4146,6 +4193,9 @@ void CPlayerPlaylistBar::TOnMenu(bool bUnderCursor)
 		TEnsureVisible(m_nCurPlayListIndex);
 		TSelectTab();
 	} else {
+		CString strDefName;
+		CString strGetName;
+
 		switch (nID) {
 			case ID_PLSMENU_ADD_PLAYLIST:
 				{
@@ -4267,6 +4317,59 @@ void CPlayerPlaylistBar::TOnMenu(bool bUnderCursor)
 					TSelectTab();
 					TEnsureVisible(m_nCurPlayListIndex);
 					TCalcLayout();
+				}
+				break;
+			case ID_PLSMENU_POSITION_FLOAT:
+				if (dockBarID != AFX_IDW_DOCKBAR_FLOAT) {
+					auto pMainFrame = AfxGetMainFrame();
+
+					CRect rectMain;
+					pMainFrame->GetWindowRect(rectMain);
+					CPoint p(rectMain.right, rectMain.top);
+
+					CRect rectDesktop;
+					GetDesktopWindow()->GetWindowRect(&rectDesktop);
+
+					CRect rect;
+					GetWindowRect(rect);
+
+					if (p.x < rectDesktop.left) {
+						p.x = rectDesktop.left;
+					}
+
+					if (p.y < rectDesktop.top) {
+						p.y = rectDesktop.top;
+					}
+
+					if (p.x + rect.Width() > rectDesktop.right) {
+						p.x = rectDesktop.left;
+					}
+
+					if (p.y + rect.Height() > rectDesktop.bottom) {
+						p.y = rectDesktop.top;
+					}
+
+					pMainFrame->m_wndToolBar.m_pDockSite->FloatControlBar(this, p);
+				}
+				break;
+			case ID_PLSMENU_POSITION_LEFT:
+				if (dockBarID != AFX_IDW_DOCKBAR_LEFT) {
+					AfxGetMainFrame()->m_wndToolBar.m_pDockSite->DockControlBar(this, AFX_IDW_DOCKBAR_LEFT);
+				}
+				break;
+			case ID_PLSMENU_POSITION_TOP:
+				if (dockBarID != AFX_IDW_DOCKBAR_TOP) {
+					AfxGetMainFrame()->m_wndToolBar.m_pDockSite->DockControlBar(this, AFX_IDW_DOCKBAR_TOP);
+				}
+				break;
+			case ID_PLSMENU_POSITION_RIGHT:
+				if (dockBarID != AFX_IDW_DOCKBAR_RIGHT) {
+					AfxGetMainFrame()->m_wndToolBar.m_pDockSite->DockControlBar(this, AFX_IDW_DOCKBAR_RIGHT);
+				}
+				break;
+			case ID_PLSMENU_POSITION_BOTTOM:
+				if (dockBarID != AFX_IDW_DOCKBAR_BOTTOM) {
+					AfxGetMainFrame()->m_wndToolBar.m_pDockSite->DockControlBar(this, AFX_IDW_DOCKBAR_BOTTOM);
 				}
 				break;
 			case 0:

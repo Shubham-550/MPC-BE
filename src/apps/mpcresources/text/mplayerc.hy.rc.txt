@@ -404,7 +404,7 @@ BEGIN DIALOGEX IDD_PPAGEPLAYBACK LINES 42
 41		"Remember selected tracks in playlist"
 END
 
-BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 41
+BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 44
 5		"Բացելու ընտրանքներ"
 6		"Force a single process"
 7		"Use same process for every file"
@@ -423,15 +423,16 @@ BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 41
 27		"Հիշել ֆայլի դիրքը"
 28		"Հիշել վերջին Pan-n-Scan չափը"
 29		"Remember main playlist"
-30		"Այլ"
-31		"Պատկերակը առաջադրանքների վահանակ."
-32		"Ցուցադրել OSD-ն (պահ.է վերամեկնարկում)"
-33		"Show name of media file"
-34		"Show seek time"
-35		"Անջատել 'Բացել սկավառակը' ընտրացանկը"
-36		"Գործողության բարձր առաջնայնություն"
-37		"Network timeout:"
-40		"sec."
+31		"Display title for URL in recent files"
+33		"Այլ"
+34		"Պատկերակը առաջադրանքների վահանակ."
+35		"Ցուցադրել OSD-ն (պահ.է վերամեկնարկում)"
+36		"Show name of media file"
+37		"Show seek time"
+38		"Անջատել 'Բացել սկավառակը' ընտրացանկը"
+39		"Գործողության բարձր առաջնայնություն"
+40		"Network timeout:"
+43		"sec."
 END
 
 BEGIN DIALOGEX IDD_PPAGESOUNDPROCESSING LINES 37
@@ -1806,6 +1807,12 @@ STRING IDS_PLAYLIST_NEXTONERROR		"Go to the next on error"
 STRING IDS_PLAYLIST_OPEN		"&Բացել"
 STRING IDS_PLAYLIST_OPENFOLDER		"Open containing folder"
 STRING IDS_PLAYLIST_PASTEFROMCLIPBOARD		"Paste from clipboard"
+STRING IDS_PLAYLIST_POSITION		"Position"
+STRING IDS_PLAYLIST_POSITION_BOTTOM		"Bottom"
+STRING IDS_PLAYLIST_POSITION_FLOAT		"Float"
+STRING IDS_PLAYLIST_POSITION_LEFT		"Left"
+STRING IDS_PLAYLIST_POSITION_RIGHT		"Right"
+STRING IDS_PLAYLIST_POSITION_TOP		"Top"
 STRING IDS_PLAYLIST_RANDOMIZE		"Խ&առնել"
 STRING IDS_PLAYLIST_REMOVE		"&Ջնջել"
 STRING IDS_PLAYLIST_REMOVEMISSINGFILES		"Remove missing files"

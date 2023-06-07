@@ -158,8 +158,8 @@ BEGIN DIALOGEX IDD_PNSPRESET_DLG LINES 22
 16		"設定(&S)"
 18		"取消(&C)"
 19		"儲存(&S)"
-20		"位置：0.1 -> 0.9"
-21		"縮放：0.2 -> 5.0"
+20		"位置：0.1 → 0.9"
+21		"縮放：0.2 → 5.0"
 END
 
 BEGIN DIALOGEX IDD_PPAGEACCELTBL LINES 17
@@ -404,7 +404,7 @@ BEGIN DIALOGEX IDD_PPAGEPLAYBACK LINES 42
 41		"記住播放清單中選定的項目"
 END
 
-BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 41
+BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 44
 5		"開啟選項"
 6		"強制單一程式"
 7		"所有檔案使用同一處理程序"
@@ -423,15 +423,16 @@ BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 41
 27		"記住檔案位置"
 28		"記住上次的平移掃描縮放"
 29		"記住主播放清單"
-30		"其他選項"
-31		"系統列（通知區域）圖示"
-32		"顯示 OSD （需要重新啟動）"
-33		"顯示媒體檔案名稱"
-34		"顯示搜尋時間"
-35		"停用「開啟光碟」選單"
-36		"程式優先順序調成標準以上"
-37		"連線逾時："
-40		"秒"
+31		"在最近的檔案為網址連結顯示標題"
+33		"其他選項"
+34		"系統列（通知區域）圖示"
+35		"顯示 OSD （需要重新啟動）"
+36		"顯示媒體檔案名稱"
+37		"顯示搜尋時間"
+38		"停用「開啟光碟」選單"
+39		"程式優先順序調成標準以上"
+40		"連線逾時："
+43		"秒"
 END
 
 BEGIN DIALOGEX IDD_PPAGESOUNDPROCESSING LINES 37
@@ -1806,6 +1807,12 @@ STRING IDS_PLAYLIST_NEXTONERROR		"出錯時播放下一項目"
 STRING IDS_PLAYLIST_OPEN		"開啟(&O)"
 STRING IDS_PLAYLIST_OPENFOLDER		"開啟所在位置"
 STRING IDS_PLAYLIST_PASTEFROMCLIPBOARD		"從剪貼簿貼上"
+STRING IDS_PLAYLIST_POSITION		"位置"
+STRING IDS_PLAYLIST_POSITION_BOTTOM		"影格底部"
+STRING IDS_PLAYLIST_POSITION_FLOAT		"分離視窗"
+STRING IDS_PLAYLIST_POSITION_LEFT		"影格左邊"
+STRING IDS_PLAYLIST_POSITION_RIGHT		"影格右邊"
+STRING IDS_PLAYLIST_POSITION_TOP		"影格頂部"
 STRING IDS_PLAYLIST_RANDOMIZE		"隨機(&A)"
 STRING IDS_PLAYLIST_REMOVE		"移除(&R)"
 STRING IDS_PLAYLIST_REMOVEMISSINGFILES		"移除已遺失檔案"
@@ -2044,7 +2051,7 @@ STRING IDS_VDF_THREADNUMBER		"解碼的執行緒數目"
 STRING IDS_VDF_TT_AR		"選取：將使用視訊串流的畫面比例。\n不選取：將使用封裝格式設定的畫面比例\n不定：在封裝格式指定畫面比例時不使用視訊串流比例（建議選項）。"
 STRING IDS_VDF_TT_PRESET		"變更速度與品質之間的平衡。"
 STRING IDS_VDF_TT_RGB_LEVELS		"此選項只會在篩選器進行 YCbCr 到 RGB 轉換時使用。"
-STRING IDS_VDF_TT_STANDARD		"此選項只會在篩選器進行 YCbCr<->RGB 轉換時使用。"
+STRING IDS_VDF_TT_STANDARD		"此選項只會在篩選器進行 YCbCr↔RGB 轉換時使用。"
 STRING IDS_VIDEO_STREAM		"影像：%s"
 STRING IDS_VIEW_BORDERLESS		"隱藏邊框\tCtrl+0"
 STRING IDS_VIEW_CAPTIONMENU		"顯示標題選單\tCtrl+0"

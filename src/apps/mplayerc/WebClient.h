@@ -1,6 +1,6 @@
 /*
  * (C) 2003-2006 Gabest
- * (C) 2006-2020 see Authors.txt
+ * (C) 2006-2023 see Authors.txt
  *
  * This file is part of MPC-BE.
  *
@@ -34,8 +34,6 @@ class CWebClientSocket : public CAsyncSocket
 		CString path, expire, domain;
 	};
 	std::map<CString, cookie_attribs> m_cookieattribs;
-
-	std::vector<NoInitByte> m_SnapShotData;
 
 	void Clear();
 	void Header();

@@ -158,8 +158,8 @@ BEGIN DIALOGEX IDD_PNSPRESET_DLG LINES 22
 16		"設定(&S)"
 18		"キャンセル(&C)"
 19		"保存(&S)"
-20		"位置: 0.1 -> 0.9"
-21		"拡大率: 0.2 -> 5.0"
+20		"位置: 0.1 → 0.9"
+21		"拡大率: 0.2 → 5.0"
 END
 
 BEGIN DIALOGEX IDD_PPAGEACCELTBL LINES 17
@@ -404,7 +404,7 @@ BEGIN DIALOGEX IDD_PPAGEPLAYBACK LINES 42
 41		"プレイリストで選択されたトラックを記憶する"
 END
 
-BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 41
+BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 44
 5		"開くオプション"
 6		"複数起動を禁止する"
 7		"同じプレーヤーで開く"
@@ -423,15 +423,16 @@ BEGIN DIALOGEX IDD_PPAGEPLAYER LINES 41
 27		"ファイルの再生位置を記憶する"
 28		"終了時の PnS 拡大率を記憶する"
 29		"メイン プレイリストを記憶する"
-30		"その他"
-31		"タスクトレイ アイコン"
-32		"OSD を表示する"
-33		"メディア ファイル名を表示する"
-34		"シーク タイムを表示する"
-35		"「ディスクを開く」のメニューを無効にする"
-36		"プロセスの優先度を 通常以上 にする"
-37		"ネットワーク タイムアウト:"
-40		"秒"
+31		"最近使ったファイルの URL のタイトルを表示する"
+33		"その他"
+34		"タスクトレイ アイコン"
+35		"OSD を表示する"
+36		"メディア ファイル名を表示する"
+37		"シーク タイムを表示する"
+38		"「ディスクを開く」のメニューを無効にする"
+39		"プロセスの優先度を 通常以上 にする"
+40		"ネットワーク タイムアウト:"
+43		"秒"
 END
 
 BEGIN DIALOGEX IDD_PPAGESOUNDPROCESSING LINES 37
@@ -1806,6 +1807,12 @@ STRING IDS_PLAYLIST_NEXTONERROR		"エラー時に次へ移動"
 STRING IDS_PLAYLIST_OPEN		"開く(&O)"
 STRING IDS_PLAYLIST_OPENFOLDER		"含んでいるフォルダーを開く"
 STRING IDS_PLAYLIST_PASTEFROMCLIPBOARD		"クリップボードから貼り付け"
+STRING IDS_PLAYLIST_POSITION		"位置"
+STRING IDS_PLAYLIST_POSITION_BOTTOM		"下側"
+STRING IDS_PLAYLIST_POSITION_FLOAT		"分離"
+STRING IDS_PLAYLIST_POSITION_LEFT		"左側"
+STRING IDS_PLAYLIST_POSITION_RIGHT		"右側"
+STRING IDS_PLAYLIST_POSITION_TOP		"上側"
 STRING IDS_PLAYLIST_RANDOMIZE		"ランダム化(&A)"
 STRING IDS_PLAYLIST_REMOVE		"削除(&R)"
 STRING IDS_PLAYLIST_REMOVEMISSINGFILES		"見つからないファイルを削除"
@@ -2044,7 +2051,7 @@ STRING IDS_VDF_THREADNUMBER		"デコードするスレッド数"
 STRING IDS_VDF_TT_AR		"チェック - ストリームからの AR が使用されます。\n未チェック - コンテナからの AR が使用されます。\n非決定 - AR を含んでいるファイルではストリームからの AR は使用されません (推奨)。"
 STRING IDS_VDF_TT_PRESET		"速度と品質の関係を変更します。"
 STRING IDS_VDF_TT_RGB_LEVELS		"この設定はフィルターが YCbCr から RGB に変換している場合にのみ使用されます。"
-STRING IDS_VDF_TT_STANDARD		"この設定はフィルターが YCbCr<->RGB の変換をしている場合にのみ使用されます。"
+STRING IDS_VDF_TT_STANDARD		"この設定はフィルターが YCbCr↔RGB の変換をしている場合にのみ使用されます。"
 STRING IDS_VIDEO_STREAM		"ビデオ: %s"
 STRING IDS_VIEW_BORDERLESS		"境界線を隠す\tCtrl+0"
 STRING IDS_VIEW_CAPTIONMENU		"タイトルとメニューを表示\tCtrl+0"

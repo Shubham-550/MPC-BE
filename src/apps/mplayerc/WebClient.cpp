@@ -852,33 +852,33 @@ bool CWebClientSocket::OnPlayer(CStringA& hdr, CStringA& body, CStringA& mime)
 
 bool CWebClientSocket::OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& mime)
 {
-	bool bRet = false;
-
-	std::vector<BYTE> dib;
-	CString errmsg;
 	if (!AfxGetAppSettings().bWebUIEnablePreview) {
-		m_SnapShotData.clear();
-
 		hdr = "HTTP/1.0 403 Forbidden\r\n";
-		bRet = true;
+		return true;
 	}
-	else if (S_OK == m_pMainFrame->GetDisplayedImage(dib, errmsg) || S_OK == m_pMainFrame->GetCurrentFrame(dib, errmsg)) {
-		if (m_SnapShotData.size() < dib.size()) {
-			m_SnapShotData.resize(dib.size());
+
+	CSimpleBlock<BYTE> dib;
+	CString errmsg;
+
+	if (S_OK == m_pMainFrame->GetDisplayedImage(dib, errmsg) || S_OK == m_pMainFrame->GetCurrentFrame(dib, errmsg)) {
+		const int maxJpegSize = std::max<int>(32*KILOBYTE, dib.Size());
+		if (body.GetAllocLength() < maxJpegSize) {
+			body.Preallocate(maxJpegSize);
 		}
-		size_t dstLen = m_SnapShotData.size();
+		size_t dstLen = body.GetAllocLength();
 
+		if (WICDIB(L".jpg", dib.Data(), AfxGetAppSettings().nWebServerQuality, (BYTE*)body.GetBuffer(), dstLen)) {
+			std::ignore = body.GetBufferSetLength(dstLen);
 
-		if (WICDIB(L".jpg", dib.data(), AfxGetAppSettings().nWebServerQuality, (BYTE*)m_SnapShotData.data(), dstLen)) {
 			hdr +=
 				"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
 				"Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
 				"Pragma: no-cache\r\n";
-			body = CStringA((char*)m_SnapShotData.data(), dstLen);
 			mime = "image/jpeg";
-			bRet = true;
+
+			return true;
 		}
 	}
 
-	return bRet;
+	return false;
 }

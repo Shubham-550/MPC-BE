@@ -1,6 +1,6 @@
 /*
  * (C) 2003-2006 Gabest
- * (C) 2006-2021 see Authors.txt
+ * (C) 2006-2023 see Authors.txt
  *
  * This file is part of MPC-BE.
  *
@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include <regex>
 #include "ShoutcastSource.h"
-#include "DSUtil/GolombBuffer.h"
+#include "DSUtil/SimpleBuffer.h"
 #include "DSUtil/AudioParser.h"
 #include "DSUtil/entities.h"
 #include <MMReg.h>
@@ -401,8 +401,8 @@ HRESULT CShoutcastStream::FillBuffer(IMediaSample* pSample)
 		if (!m_queue.empty()) {
 			std::unique_ptr<CShoutCastPacket> p = std::move(m_queue.front());
 			m_queue.pop_front();
-			long len = std::min(pSample->GetSize(), (long)p->size());
-			memcpy(pData, p->data(), len);
+			long len = std::min(pSample->GetSize(), (long)p->size);
+			memcpy(pData, p->data.get(), len);
 			pSample->SetActualDataLength(len);
 			pSample->SetTime(&p->rtStart, &p->rtStop);
 			m_title = p->title;
@@ -511,8 +511,9 @@ UINT CShoutcastStream::SocketThreadProc()
 	m_title       = soc.m_title;
 	m_description = soc.m_description;
 
-	REFERENCE_TIME m_rtSampleTime = 0;
-	std::vector<NoInitByte> buffer;
+	REFERENCE_TIME rtSampleTime = 0;
+	CSimpleBuffer<BYTE> buffer;
+	size_t bufdatalen = 0;
 
 	while (!fExitThread) {
 		{
@@ -544,12 +545,12 @@ UINT CShoutcastStream::SocketThreadProc()
 			continue; // Hmm.
 		}
 
-		size_t old_size = buffer.size();
-		buffer.resize(old_size + len);
-		memcpy(buffer.data() + old_size, pData.get(), (size_t)len);
+		buffer.ExtendSizeNoDiscard(bufdatalen + len);
+		memcpy(buffer.Data() + bufdatalen, pData.get(), (size_t)len);
+		bufdatalen += len;
 
-		BYTE* pos = &buffer.front().value;
-		const BYTE* end = pos + buffer.size();
+		BYTE* pos = buffer.Data();
+		const BYTE* end = pos + bufdatalen;
 
 		if (m_socket.m_Format == AUDIO_MPEG) {
 			for(;;) {
@@ -578,11 +579,10 @@ UINT CShoutcastStream::SocketThreadProc()
 					}
 				}
 
-				std::unique_ptr<CShoutCastPacket> p2(DNew CShoutCastPacket());
-				p2->SetData(pos, size);
-				p2->rtStart = m_rtSampleTime;
-				p2->rtStop  = m_rtSampleTime + (10000000i64 * size * 8/soc.m_bitrate);
-				m_rtSampleTime = p2->rtStop;
+				std::unique_ptr<CShoutCastPacket> p2(DNew CShoutCastPacket(pos, size));
+				p2->rtStart = rtSampleTime;
+				p2->rtStop  = rtSampleTime + (10000000i64 * size * 8/soc.m_bitrate);
+				rtSampleTime = p2->rtStop;
 				p2->title = !soc.m_title.IsEmpty() ? soc.m_title : soc.m_url;
 
 				{
@@ -621,11 +621,10 @@ UINT CShoutcastStream::SocketThreadProc()
 					}
 				}
 
-				std::unique_ptr<CShoutCastPacket> p2(DNew CShoutCastPacket());
-				p2->SetData(pos + aframe.param1, size - aframe.param1);
-				p2->rtStart = m_rtSampleTime;
-				p2->rtStop  = m_rtSampleTime + (10000000i64 * size * 8/soc.m_bitrate);
-				m_rtSampleTime = p2->rtStop;
+				std::unique_ptr<CShoutCastPacket> p2(DNew CShoutCastPacket(pos + aframe.param1, size - aframe.param1));
+				p2->rtStart = rtSampleTime;
+				p2->rtStop  = rtSampleTime + (10000000i64 * size * 8/soc.m_bitrate);
+				rtSampleTime = p2->rtStop;
 				p2->title = !soc.m_title.IsEmpty() ? soc.m_title : soc.m_url;
 
 				{
@@ -637,10 +636,9 @@ UINT CShoutcastStream::SocketThreadProc()
 			}
 		}
 
-		if (pos > &buffer.front().value) {
-			size_t unused_size = end - pos;
-			memmove(buffer.data(), pos, unused_size);
-			buffer.resize(unused_size);
+		if (pos > buffer.Data()) {
+			bufdatalen = end - pos;
+			memmove(buffer.Data(), pos, bufdatalen);
 		}
 	}
 

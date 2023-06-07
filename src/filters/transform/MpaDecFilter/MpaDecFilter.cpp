@@ -53,16 +53,6 @@
 #define OPTION_SPDIF_dtshd  L"HDMI_dtshd"
 #define OPTION_SPDIF_ac3enc L"SPDIF_ac3enc"
 
-#define PADDING_SIZE        AV_INPUT_BUFFER_PADDING_SIZE
-/** ffmpeg\libavcodec\avcodec.h - AV_INPUT_BUFFER_PADDING_SIZE
-* @ingroup lavc_decoding
-* Required number of additionally allocated bytes at the end of the input bitstream for decoding.
-* This is mainly needed because some optimized bitstream readers read
-* 32 or 64 bit at once and could read over the end.
-* Note: If the first 23 bits of the additional bytes are not 0, then damaged
-* MPEG bitstreams could cause overread and segfault.
-*/
-
 #define BS_HEADER_SIZE          8
 #define BS_AC3_SIZE          6144
 #define BS_DTS_SIZE          2048
@@ -291,7 +281,8 @@ static const SampleFormat MPCtoSamplefmt[sfcount] = {
 CMpaDecFilter::CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	: CTransformFilter(L"CMpaDecFilter", lpunk, __uuidof(this))
 	, m_CodecId(AV_CODEC_ID_NONE)
-	, m_buff(PADDING_SIZE)
+	, m_buff(AV_INPUT_BUFFER_PADDING_SIZE, 32)
+	, m_buffRA(AV_INPUT_BUFFER_PADDING_SIZE, 32)
 	, m_JitterLimit(MAX_JITTER)
 	, m_rtStartInput(INVALID_TIME)
 	, m_rtStopInput(INVALID_TIME)
@@ -814,13 +805,12 @@ HRESULT CMpaDecFilter::ProcessFFmpeg(enum AVCodecID nCodecId, BOOL bEOF/* = FALS
 	BYTE* p = base;
 
 	// RealAudio
-	CPaddedBuffer buffRA(AV_INPUT_BUFFER_PADDING_SIZE);
 	bool isRA = false;
 	if (nCodecId == AV_CODEC_ID_ATRAC3 || nCodecId == AV_CODEC_ID_COOK || nCodecId == AV_CODEC_ID_SIPR) {
-		hr = m_FFAudioDec.RealPrepare(p, int(end - p), buffRA);
+		hr = m_FFAudioDec.RealPrepare(p, int(end - p), m_buffRA);
 		if (hr == S_OK) {
-			p = buffRA.Data();
-			end = p + buffRA.Size();
+			p = m_buffRA.Data();
+			end = p + m_buffRA.Size();
 			isRA = true;
 
 			m_rtStartInput = m_rtStartInputCache;
@@ -862,7 +852,7 @@ HRESULT CMpaDecFilter::ProcessFFmpeg(enum AVCodecID nCodecId, BOOL bEOF/* = FALS
 	}
 
 	if (isRA) { // RealAudio
-		p = base + buffRA.Size();
+		p = base + m_buffRA.Size();
 		end = base + m_buff.Size();
 	}
 
@@ -1446,18 +1436,17 @@ HRESULT CMpaDecFilter::ProcessPCMraw() //'raw '
 	size_t nSamples   = size * 8 / wfe->wBitsPerSample;
 
 	SampleFormat out_sf = SAMPLE_FMT_NONE;
-	std::vector<NoInitByte> outBuff;
-	outBuff.resize(size);
+	auto outBuff = std::make_unique<uint8_t[]>(size);
 
 	switch (wfe->wBitsPerSample) {
 		case 8: // unsigned 8-bit
 			out_sf = SAMPLE_FMT_U8;
-			memcpy(outBuff.data(), m_buff.Data(), size);
+			memcpy(outBuff.get(), m_buff.Data(), size);
 		break;
 		case 16: { // signed big-endian 16-bit
 			out_sf = SAMPLE_FMT_S16;
 			uint16_t* pIn  = (uint16_t*)m_buff.Data();
-			uint16_t* pOut = (uint16_t*)outBuff.data();
+			uint16_t* pOut = (uint16_t*)outBuff.get();
 
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = _byteswap_ushort(pIn[i]);
@@ -1467,7 +1456,7 @@ HRESULT CMpaDecFilter::ProcessPCMraw() //'raw '
 	}
 
 	HRESULT hr;
-	if (S_OK != (hr = Deliver(&outBuff.front().value, size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
+	if (S_OK != (hr = Deliver(outBuff.get(), size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
 		return hr;
 	}
 
@@ -1482,14 +1471,13 @@ HRESULT CMpaDecFilter::ProcessPCMintBE() // 'twos', big-endian 'in24' and 'in32'
 
 	SampleFormat out_sf = SAMPLE_FMT_NONE;
 	size_t outSize = nSamples * (wfe->wBitsPerSample <= 16 ? 2 : 4); // convert to 16 and 32-bit
-	std::vector<NoInitByte> outBuff;
-	outBuff.resize(outSize);
+	auto outBuff = std::make_unique<uint8_t[]>(outSize);
 
 	switch (wfe->wBitsPerSample) {
 		case 8: { //signed 8-bit
 			out_sf = SAMPLE_FMT_S16;
 			int8_t*  pIn  = (int8_t*)m_buff.Data();
-			int16_t* pOut = (int16_t*)outBuff.data();
+			int16_t* pOut = (int16_t*)outBuff.get();
 
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = (int16_t)pIn[i] << 8;
@@ -1499,7 +1487,7 @@ HRESULT CMpaDecFilter::ProcessPCMintBE() // 'twos', big-endian 'in24' and 'in32'
 		case 16: { // signed big-endian 16-bit
 			out_sf = SAMPLE_FMT_S16;
 			uint16_t* pIn  = (uint16_t*)m_buff.Data(); // signed take as an unsigned to shift operations.
-			uint16_t* pOut = (uint16_t*)outBuff.data();
+			uint16_t* pOut = (uint16_t*)outBuff.get();
 
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = _byteswap_ushort(pIn[i]);
@@ -1509,7 +1497,7 @@ HRESULT CMpaDecFilter::ProcessPCMintBE() // 'twos', big-endian 'in24' and 'in32'
 		case 24: { // signed big-endian 24-bit
 			out_sf = SAMPLE_FMT_S32;
 			uint8_t*  pIn  = (uint8_t*)m_buff.Data();
-			uint32_t* pOut = (uint32_t*)outBuff.data();
+			uint32_t* pOut = (uint32_t*)outBuff.get();
 
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = (uint32_t)pIn[3 * i]     << 24 |
@@ -1521,7 +1509,7 @@ HRESULT CMpaDecFilter::ProcessPCMintBE() // 'twos', big-endian 'in24' and 'in32'
 		case 32: { // signed big-endian 32-bit
 			out_sf = SAMPLE_FMT_S32;
 			uint32_t* pIn  = (uint32_t*)m_buff.Data(); // signed take as an unsigned to shift operations.
-			uint32_t* pOut = (uint32_t*)outBuff.data();
+			uint32_t* pOut = (uint32_t*)outBuff.get();
 
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = _byteswap_ulong(pIn[i]);
@@ -1531,7 +1519,7 @@ HRESULT CMpaDecFilter::ProcessPCMintBE() // 'twos', big-endian 'in24' and 'in32'
 	}
 
 	HRESULT hr;
-	if (S_OK != (hr = Deliver(&outBuff.front().value, outSize, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
+	if (S_OK != (hr = Deliver(outBuff.get(), outSize, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
 		return hr;
 	}
 
@@ -1546,14 +1534,13 @@ HRESULT CMpaDecFilter::ProcessPCMintLE() // 'sowt', little-endian 'in24' and 'in
 
 	SampleFormat out_sf = SAMPLE_FMT_NONE;
 	size_t outSize = nSamples * (wfe->wBitsPerSample <= 16 ? 2 : 4); // convert to 16 and 32-bit
-	std::vector<NoInitByte> outBuff;
-	outBuff.resize(outSize);
+	auto outBuff = std::make_unique<uint8_t[]>(outSize);
 
 	switch (wfe->wBitsPerSample) {
 		case 8: { //signed 8-bit
 			out_sf = SAMPLE_FMT_S16;
 			int8_t*  pIn  = (int8_t*)m_buff.Data();
-			int16_t* pOut = (int16_t*)outBuff.data();
+			int16_t* pOut = (int16_t*)outBuff.get();
 
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = (int16_t)pIn[i] << 8;
@@ -1562,20 +1549,20 @@ HRESULT CMpaDecFilter::ProcessPCMintLE() // 'sowt', little-endian 'in24' and 'in
 		break;
 		case 16: // signed little-endian 16-bit
 			out_sf = SAMPLE_FMT_S16;
-			memcpy(outBuff.data(), m_buff.Data(), outSize);
+			memcpy(outBuff.get(), m_buff.Data(), outSize);
 			break;
 		case 24: // signed little-endian 24-bit
 			out_sf = SAMPLE_FMT_S32;
-			convert_int24_to_int32((int32_t*)outBuff.data(), (uint8_t*)m_buff.Data(), nSamples);
+			convert_int24_to_int32((int32_t*)outBuff.get(), (uint8_t*)m_buff.Data(), nSamples);
 			break;
 		case 32: // signed little-endian 32-bit
 			out_sf = SAMPLE_FMT_S32;
-			memcpy(outBuff.data(), m_buff.Data(), outSize);
+			memcpy(outBuff.get(), m_buff.Data(), outSize);
 			break;
 	}
 
 	HRESULT hr;
-	if (S_OK != (hr = Deliver(&outBuff.front().value, outSize, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
+	if (S_OK != (hr = Deliver(outBuff.get(), outSize, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
 		return hr;
 	}
 
@@ -1590,14 +1577,13 @@ HRESULT CMpaDecFilter::ProcessPCMfloatBE() // big-endian 'fl32' and 'fl64'
 	size_t nSamples   = size * 8 / wfe->wBitsPerSample;
 
 	SampleFormat out_sf = SAMPLE_FMT_NONE;
-	std::vector<NoInitByte> outBuff;
-	outBuff.resize(size);
+	auto outBuff = std::make_unique<uint8_t[]>(size);
 
 	switch (wfe->wBitsPerSample) {
 		case 32: {
 			out_sf = SAMPLE_FMT_FLT;
 			uint32_t* pIn  = (uint32_t*)m_buff.Data();
-			uint32_t* pOut = (uint32_t*)outBuff.data();
+			uint32_t* pOut = (uint32_t*)outBuff.get();
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = _byteswap_ulong(pIn[i]);
 			}
@@ -1606,7 +1592,7 @@ HRESULT CMpaDecFilter::ProcessPCMfloatBE() // big-endian 'fl32' and 'fl64'
 		case 64: {
 			out_sf = SAMPLE_FMT_DBL;
 			uint64_t* pIn  = (uint64_t*)m_buff.Data();
-			uint64_t* pOut = (uint64_t*)outBuff.data();
+			uint64_t* pOut = (uint64_t*)outBuff.get();
 			for (size_t i = 0; i < nSamples; i++) {
 				pOut[i] = _byteswap_uint64(pIn[i]);
 			}
@@ -1615,7 +1601,7 @@ HRESULT CMpaDecFilter::ProcessPCMfloatBE() // big-endian 'fl32' and 'fl64'
 	}
 
 	HRESULT hr;
-	if (S_OK != (hr = Deliver(&outBuff.front().value, size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
+	if (S_OK != (hr = Deliver(outBuff.get(), size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
 		return hr;
 	}
 
@@ -1629,8 +1615,7 @@ HRESULT CMpaDecFilter::ProcessPCMfloatLE() // little-endian 'fl32' and 'fl64'
 	size_t size = m_buff.Size();
 
 	SampleFormat out_sf = SAMPLE_FMT_NONE;
-	std::vector<NoInitByte> outBuff;
-	outBuff.resize(size);
+	auto outBuff = std::make_unique<uint8_t[]>(size);
 
 	switch (wfe->wBitsPerSample) {
 		case 32:
@@ -1640,10 +1625,10 @@ HRESULT CMpaDecFilter::ProcessPCMfloatLE() // little-endian 'fl32' and 'fl64'
 			out_sf = SAMPLE_FMT_DBL;
 			break;
 	}
-	memcpy(outBuff.data(), m_buff.Data(), size);
+	memcpy(outBuff.get(), m_buff.Data(), size);
 
 	HRESULT hr;
-	if (S_OK != (hr = Deliver(&outBuff.front().value, size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
+	if (S_OK != (hr = Deliver(outBuff.get(), size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
 		return hr;
 	}
 
@@ -1661,8 +1646,7 @@ HRESULT CMpaDecFilter::ProcessPS2PCM()
 	size_t size = wfe->dwInterleave * wfe->nChannels;
 
 	SampleFormat out_sf = SAMPLE_FMT_S16P;
-	std::vector<NoInitByte> outBuff;
-	outBuff.resize(size);
+	auto outBuff = std::make_unique<uint8_t[]>(size);
 
 	while (p + size <= end) {
 		DWORD* dw = (DWORD*)p;
@@ -1674,13 +1658,13 @@ HRESULT CMpaDecFilter::ProcessPS2PCM()
 			m_ps2_state.sync = true;
 		} else {
 			if (m_ps2_state.sync) {
-				memcpy(outBuff.data(), p, size);
+				memcpy(outBuff.get(), p, size);
 			} else {
-				memset(outBuff.data(), 0, size);
+				memset(outBuff.get(), 0, size);
 			}
 
 			HRESULT hr;
-			if (S_OK != (hr = Deliver(&outBuff.front().value, size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
+			if (S_OK != (hr = Deliver(outBuff.get(), size, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
 				return hr;
 			}
 			m_rtStartInput = INVALID_TIME;
@@ -1740,9 +1724,8 @@ HRESULT CMpaDecFilter::ProcessPS2ADPCM()
 
 	SampleFormat out_sf = SAMPLE_FMT_S16P;
 	size_t outSize = samples * channels * sizeof(int16_t);
-	std::vector<NoInitByte> outBuff;
-	outBuff.resize(outSize);
-	int16_t* pOut = (int16_t*)outBuff.data();
+	auto outBuff = std::make_unique<uint8_t[]>(outSize);
+	int16_t* pOut = (int16_t*)outBuff.get();
 
 	while (p + size <= end) {
 		DWORD* dw = (DWORD*)p;
@@ -1760,11 +1743,11 @@ HRESULT CMpaDecFilter::ProcessPS2ADPCM()
 					}
 				}
 			} else {
-				memset(outBuff.data(), 0, outSize);
+				memset(outBuff.get(), 0, outSize);
 			}
 
 			HRESULT hr;
-			if (S_OK != (hr = Deliver(&outBuff.front().value, outSize, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
+			if (S_OK != (hr = Deliver(outBuff.get(), outSize, m_rtStartInput, out_sf, wfe->nSamplesPerSec, wfe->nChannels))) {
 				return hr;
 			}
 			m_rtStartInput = INVALID_TIME;
@@ -2704,14 +2687,20 @@ STDMETHODIMP_(CString) CMpaDecFilter::GetInformation(MPCAInfo index)
 					case DCA_PROFILE_HD_MA:
 						codecName = "dts-hd ma";
 						break;
+					case DCA_PROFILE_EXPRESS:
+						codecName = "dts express";
+						break;
 					case DCA_PROFILE_HD_MA_X:
 						codecName = "dts-hd ma + dts:x";
 						break;
 					case DCA_PROFILE_HD_MA_X_IMAX:
 						codecName = "dts-hd ma + dts:x imax";
 						break;
-					case DCA_PROFILE_EXPRESS:
-						codecName = "dts express";
+					case DCA_PROFILE_HD_HRA_X:
+						codecName = "dts-hd hra + dts:x";
+						break;
+					case DCA_PROFILE_HD_HRA_X_IMAX:
+						codecName = "dts-hd hra + dts:x imax";
 						break;
 				}
 			}
